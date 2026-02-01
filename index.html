@@ -3,173 +3,183 @@
 <head>
 <meta charset="UTF-8">
 <title>Audio Player Editor</title>
-
 <style>
-body{
-  margin:0;
-  display:flex;
-  height:100vh;
-  font-family:sans-serif;
-  background:#0b0f1a;
-  color:#fff;
+body {
+  margin: 0;
+  font-family: Inter, sans-serif;
+  background: #0b0f1a;
+  color: #fff;
+  display: flex;
+  height: 100vh;
 }
-.panel{
-  width:320px;
-  padding:16px;
-  background:#11162a;
+
+.panel {
+  width: 340px;
+  padding: 20px;
+  background: #11162a;
+  overflow-y: auto;
 }
-label{display:block;margin-top:10px;font-size:13px}
-input{
-  width:100%;
-  margin-top:6px;
-  padding:6px;
-  border-radius:6px;
-  border:none;
-  background:#1b2040;
-  color:#fff;
+
+label {
+  display: block;
+  margin-top: 12px;
+  font-size: 13px;
+  opacity: .8;
 }
-button{
-  margin-top:12px;
-  width:100%;
-  padding:8px;
-  border:none;
-  border-radius:6px;
-  background:#8b5cf6;
-  color:#fff;
-  cursor:pointer;
+
+input, textarea {
+  width: 100%;
+  margin-top: 6px;
+  padding: 8px;
+  border-radius: 6px;
+  border: none;
+  background: #1b2040;
+  color: #fff;
 }
-.preview{
-  flex:1;
-  display:flex;
-  align-items:center;
-  justify-content:center;
+
+textarea { height: 120px; }
+
+button {
+  margin-top: 14px;
+  width: 100%;
+  padding: 10px;
+  background: #8b5cf6;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  cursor: pointer;
 }
-iframe{
-  border:none;
-  background:transparent;
+
+.preview {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+iframe {
+  border: none;
+  background: transparent;
 }
 </style>
 </head>
 
 <body>
 
-<!-- ===== PANEL ===== -->
 <div class="panel">
-  <h3>Audio Player Editor</h3>
+  <h2>Audio Player Editor</h2>
 
-  <label>Размер</label>
+  <label>Размер плеера</label>
   <input type="range" id="size" min="220" max="420" value="300">
 
   <label>Основной цвет</label>
   <input type="color" id="primary" value="#8b5cf6">
 
+  <label>Цвет текста</label>
+  <input type="color" id="text" value="#ffffff">
+
   <label>Обложка</label>
-  <input id="cover" placeholder="https://...">
+  <input id="cover">
+
+  <label>Треки (JSON)</label>
+  <textarea id="tracks"></textarea>
 
   <button onclick="updatePreview()">Обновить предпросмотр</button>
+  <button onclick="generateCode()">Получить код</button>
 </div>
 
-<!-- ===== PREVIEW ===== -->
 <div class="preview">
   <iframe id="preview"></iframe>
 </div>
 
 <script>
-/* ===== АВТОЗАГРУЗКА ТРЕКОВ ИЗ GITHUB ===== */
-async function loadTracksFromGitHub(){
-  const url = 'https://api.github.com/repos/AnnaPug/audioplayer/contents/audio';
-  const res = await fetch(url);
-  const data = await res.json();
-
-  return data
-    .filter(f => /\.(mp3|wav|ogg)$/i.test(f.name))
-    .map(f => ({
-      title: f.name.replace(/\.[^/.]+$/, ''),
-      src: f.download_url
-    }));
-}
-
-/* ===== ПЛЕЕР (НЕ ТРОНУТ) ===== */
-function buildPlayer(c){
-
+function buildPlayer(c) {
 return `
-<!DOCTYPE html>
-<html>
-<head>
-<style>
-body{margin:0;background:transparent}
-#player{
-  width:${c.size}px;
-  font-family:sans-serif;
-  color:white;
-}
-img{width:100%;border-radius:16px}
-.controls{
-  display:flex;
-  justify-content:space-around;
-  margin-top:10px;
-}
-button{
-  width:44px;
-  height:44px;
-  border-radius:50%;
-  border:none;
-  background:${c.primary};
-  color:white;
-}
-#playlist{display:none;margin-top:8px}
-#playlist div{cursor:pointer;padding:4px}
-input[type=range]{width:100%}
-</style>
-</head>
-
-<body>
-
 <div id="player">
   <img id="cover">
-  <div id="title"></div>
+  <canvas id="viz"></canvas>
+  <h3 id="title"></h3>
 
-  <input type="range" id="progress" value="0">
+  <input type="range" id="progress">
 
   <div class="controls">
     <button id="prev">⏮</button>
     <button id="play">▶</button>
     <button id="next">⏭</button>
-    <button id="list">☰</button>
+    <button id="shuffle">🔀</button>
+    <button id="listBtn">📂</button>
   </div>
 
   <input type="range" id="volume" min="0" max="1" step="0.01">
 
   <div id="playlist"></div>
 
-  <audio id="audio"></audio>
+  <audio id="audio" crossorigin="anonymous"></audio>
 </div>
 
+<style>
+#player{
+  width:${c.size}px;
+  color:${c.text};
+  font-family:sans-serif;
+}
+
+#cover{
+  width:100%;
+  border-radius:16px;
+}
+
+.controls{
+  display:flex;
+  justify-content:space-between;
+}
+
+.controls button{
+  background:${c.primary};
+  border:none;
+  border-radius:50%;
+  width:42px;
+  height:42px;
+  color:#fff;
+}
+
+#playlist{
+  display:none;
+  margin-top:10px;
+}
+#playlist div{
+  cursor:pointer;
+  padding:4px;
+}
+</style>
+
 <script>
-const tracks = ${JSON.stringify(c.tracks)};
-let index = 0;
+const tracks=${JSON.stringify(c.tracks)};
+let i=0, shuffle=false;
 
-const audio = document.getElementById('audio');
-const play = document.getElementById('play');
-const title = document.getElementById('title');
-const cover = document.getElementById('cover');
-const playlist = document.getElementById('playlist');
+const audio=document.getElementById('audio');
+const play=document.getElementById('play');
+const title=document.getElementById('title');
+const cover=document.getElementById('cover');
+const playlist=document.getElementById('playlist');
+const volume=document.getElementById('volume');
 
-cover.src = "${c.cover}";
-audio.volume = 0.8;
-document.getElementById('volume').value = 0.8;
+cover.src='${c.cover}';
+volume.value=0.8;
+audio.volume=0.8;
 
-tracks.forEach((t,i)=>{
+tracks.forEach((t,idx)=>{
   const d=document.createElement('div');
   d.textContent=t.title;
-  d.onclick=()=>{load(i);playAudio()};
+  d.onclick=()=>{load(idx);playAudio();}
   playlist.appendChild(d);
 });
 
-function load(i){
-  index=i;
+function load(n){
+  i=n;
   audio.src=tracks[i].src;
   title.textContent=tracks[i].title;
+  audio.load();
 }
 
 function playAudio(){
@@ -178,54 +188,75 @@ function playAudio(){
 }
 
 play.onclick=()=>{
-  if(audio.paused) playAudio();
-  else{ audio.pause(); play.textContent='▶'; }
+  audio.paused?playAudio():(audio.pause(),play.textContent='▶');
 };
 
 document.getElementById('next').onclick=()=>{
-  index=(index+1)%tracks.length;
-  load(index); playAudio();
+  i=shuffle?Math.floor(Math.random()*tracks.length):(i+1)%tracks.length;
+  load(i);playAudio();
 };
 
 document.getElementById('prev').onclick=()=>{
-  index=(index-1+tracks.length)%tracks.length;
-  load(index); playAudio();
+  i=(i-1+tracks.length)%tracks.length;
+  load(i);playAudio();
 };
 
-document.getElementById('list').onclick=()=>{
-  playlist.style.display =
-    playlist.style.display === 'block' ? 'none' : 'block';
+document.getElementById('shuffle').onclick=()=>shuffle=!shuffle;
+document.getElementById('listBtn').onclick=()=>{
+  playlist.style.display=playlist.style.display?'':'block';
 };
 
-document.getElementById('volume').oninput=e=>{
-  audio.volume=e.target.value;
-};
+volume.oninput=e=>audio.volume=e.target.value;
+audio.onended=()=>document.getElementById('next').click();
+
+// VISUALIZER
+const ctx=new AudioContext();
+const src=ctx.createMediaElementSource(audio);
+const analyser=ctx.createAnalyser();
+src.connect(analyser);
+analyser.connect(ctx.destination);
+const canvas=document.getElementById('viz');
+canvas.width=${c.size};
+canvas.height=60;
+const cctx=canvas.getContext('2d');
+
+function draw(){
+  requestAnimationFrame(draw);
+  const data=new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteFrequencyData(data);
+  cctx.clearRect(0,0,canvas.width,canvas.height);
+  data.slice(0,40).forEach((v,x)=>{
+    cctx.fillRect(x*6,canvas.height-v/4,4,v/4);
+  });
+}
+audio.onplay=()=>ctx.resume();
+draw();
 
 load(0);
 <\/script>
-
-</body>
-</html>
 `;
 }
 
-/* ===== PREVIEW ===== */
-async function updatePreview(){
-  const tracks = await loadTracksFromGitHub();
-
-  const cfg={
+function getConfig(){
+  return {
     size:size.value,
     primary:primary.value,
+    text:text.value,
     cover:cover.value,
-    tracks
-  };
-
-  preview.srcdoc = buildPlayer(cfg);
-  preview.style.width = cfg.size + 'px';
-  preview.style.height = '520px';
+    tracks:JSON.parse(tracks.value)
+  }
 }
 
-updatePreview();
+function updatePreview(){
+  preview.srcdoc=buildPlayer(getConfig());
+  preview.style.width=size.value+'px';
+  preview.style.height='520px';
+}
+
+function generateCode(){
+  navigator.clipboard.writeText(buildPlayer(getConfig()));
+  alert('Код скопирован');
+}
 </script>
 
 </body>
