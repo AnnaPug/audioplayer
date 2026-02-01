@@ -20,20 +20,14 @@ body {
   overflow-y: auto;
 }
 
-.panel h2 {
-  margin-top: 0;
-}
-
-.panel label {
+label {
   display: block;
   margin-top: 12px;
   font-size: 13px;
-  opacity: 0.8;
+  opacity: .8;
 }
 
-.panel input,
-.panel select,
-.panel textarea {
+input, textarea {
   width: 100%;
   margin-top: 6px;
   padding: 8px;
@@ -43,20 +37,16 @@ body {
   color: #fff;
 }
 
-.panel textarea {
-  height: 100px;
-  resize: vertical;
-}
+textarea { height: 120px; }
 
 button {
-  margin-top: 16px;
+  margin-top: 14px;
   width: 100%;
   padding: 10px;
   background: #8b5cf6;
   border: none;
   border-radius: 8px;
   color: #fff;
-  font-size: 14px;
   cursor: pointer;
 }
 
@@ -65,31 +55,11 @@ button {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at top, #1a1f3a, #050714);
 }
 
 iframe {
-  width: 320px;
-  height: 480px;
   border: none;
   background: transparent;
-}
-
-#codeModal {
-  position: fixed;
-  inset: 0;
-  background: rgba(0,0,0,.8);
-  display: none;
-  align-items: center;
-  justify-content: center;
-}
-
-#codeModal textarea {
-  width: 80%;
-  height: 80%;
-  background: #0b0f1a;
-  color: #0f0;
-  font-family: monospace;
 }
 </style>
 </head>
@@ -99,37 +69,20 @@ iframe {
 <div class="panel">
   <h2>Audio Player Editor</h2>
 
+  <label>Размер плеера</label>
+  <input type="range" id="size" min="220" max="420" value="300">
+
   <label>Основной цвет</label>
   <input type="color" id="primary" value="#8b5cf6">
-
-  <label>Акцент</label>
-  <input type="color" id="accent" value="#f59e0b">
 
   <label>Цвет текста</label>
   <input type="color" id="text" value="#ffffff">
 
-  <label>Язык</label>
-  <select id="lang">
-    <option value="ru">Русский</option>
-    <option value="en">English</option>
-  </select>
+  <label>Обложка</label>
+  <input id="cover">
 
-  <label>Обложка (URL)</label>
-  <input id="cover" placeholder="https://...">
-
-  <label>Аудио (JSON / GitHub RAW)</label>
-  <textarea id="tracks">
-[
-  {
-    "title": "Track 1",
-    "src": "https://raw.githubusercontent.com/USER/REPO/main/audio/track1.mp3"
-  },
-  {
-    "title": "Track 2",
-    "src": "https://raw.githubusercontent.com/USER/REPO/main/audio/track2.mp3"
-  }
-]
-  </textarea>
+  <label>Треки (JSON)</label>
+  <textarea id="tracks"></textarea>
 
   <button onclick="updatePreview()">Обновить предпросмотр</button>
   <button onclick="generateCode()">Получить код</button>
@@ -139,15 +92,12 @@ iframe {
   <iframe id="preview"></iframe>
 </div>
 
-<div id="codeModal" onclick="this.style.display='none'">
-  <textarea id="output"></textarea>
-</div>
-
 <script>
-function buildPlayer(config) {
+function buildPlayer(c) {
 return `
 <div id="player">
   <img id="cover">
+  <canvas id="viz"></canvas>
   <h3 id="title"></h3>
 
   <input type="range" id="progress">
@@ -157,23 +107,21 @@ return `
     <button id="play">▶</button>
     <button id="next">⏭</button>
     <button id="shuffle">🔀</button>
+    <button id="listBtn">📂</button>
   </div>
 
-  <audio id="audio"></audio>
+  <input type="range" id="volume" min="0" max="1" step="0.01">
+
+  <div id="playlist"></div>
+
+  <audio id="audio" crossorigin="anonymous"></audio>
 </div>
 
 <style>
-:root{
-  --primary:${config.primary};
-  --accent:${config.accent};
-  --text:${config.text};
-}
-
 #player{
-  width:280px;
-  color:var(--text);
+  width:${c.size}px;
+  color:${c.text};
   font-family:sans-serif;
-  background:transparent;
 }
 
 #cover{
@@ -184,71 +132,131 @@ return `
 .controls{
   display:flex;
   justify-content:space-between;
-  margin-top:10px;
 }
 
 .controls button{
+  background:${c.primary};
+  border:none;
+  border-radius:50%;
   width:42px;
   height:42px;
-  border-radius:50%;
-  border:none;
-  background:var(--primary);
   color:#fff;
+}
+
+#playlist{
+  display:none;
+  margin-top:10px;
+}
+#playlist div{
+  cursor:pointer;
+  padding:4px;
 }
 </style>
 
 <script>
-const tracks=${JSON.stringify(config.tracks)};
+const tracks=${JSON.stringify(c.tracks)};
 let i=0, shuffle=false;
+
 const audio=document.getElementById('audio');
+const play=document.getElementById('play');
 const title=document.getElementById('title');
 const cover=document.getElementById('cover');
-const play=document.getElementById('play');
+const playlist=document.getElementById('playlist');
+const volume=document.getElementById('volume');
+
+cover.src='${c.cover}';
+volume.value=0.8;
+audio.volume=0.8;
+
+tracks.forEach((t,idx)=>{
+  const d=document.createElement('div');
+  d.textContent=t.title;
+  d.onclick=()=>{load(idx);playAudio();}
+  playlist.appendChild(d);
+});
 
 function load(n){
- audio.src=tracks[n].src;
- title.textContent=tracks[n].title;
- cover.src='${config.cover}';
+  i=n;
+  audio.src=tracks[i].src;
+  title.textContent=tracks[i].title;
+  audio.load();
 }
-play.onclick=()=>{
- audio.paused?(audio.play(),play.textContent='⏸'):(audio.pause(),play.textContent='▶');
-}
-document.getElementById('next').onclick=()=>{
- i=shuffle?Math.floor(Math.random()*tracks.length):(i+1)%tracks.length;
- load(i);audio.play();
-}
-document.getElementById('prev').onclick=()=>{
- i=(i-1+tracks.length)%tracks.length;
- load(i);audio.play();
-}
-document.getElementById('shuffle').onclick=()=>shuffle=!shuffle;
 
-load(i);
+function playAudio(){
+  audio.play();
+  play.textContent='⏸';
+}
+
+play.onclick=()=>{
+  audio.paused?playAudio():(audio.pause(),play.textContent='▶');
+};
+
+document.getElementById('next').onclick=()=>{
+  i=shuffle?Math.floor(Math.random()*tracks.length):(i+1)%tracks.length;
+  load(i);playAudio();
+};
+
+document.getElementById('prev').onclick=()=>{
+  i=(i-1+tracks.length)%tracks.length;
+  load(i);playAudio();
+};
+
+document.getElementById('shuffle').onclick=()=>shuffle=!shuffle;
+document.getElementById('listBtn').onclick=()=>{
+  playlist.style.display=playlist.style.display?'':'block';
+};
+
+volume.oninput=e=>audio.volume=e.target.value;
+audio.onended=()=>document.getElementById('next').click();
+
+// VISUALIZER
+const ctx=new AudioContext();
+const src=ctx.createMediaElementSource(audio);
+const analyser=ctx.createAnalyser();
+src.connect(analyser);
+analyser.connect(ctx.destination);
+const canvas=document.getElementById('viz');
+canvas.width=${c.size};
+canvas.height=60;
+const cctx=canvas.getContext('2d');
+
+function draw(){
+  requestAnimationFrame(draw);
+  const data=new Uint8Array(analyser.frequencyBinCount);
+  analyser.getByteFrequencyData(data);
+  cctx.clearRect(0,0,canvas.width,canvas.height);
+  data.slice(0,40).forEach((v,x)=>{
+    cctx.fillRect(x*6,canvas.height-v/4,4,v/4);
+  });
+}
+audio.onplay=()=>ctx.resume();
+draw();
+
+load(0);
 <\/script>
 `;
 }
 
 function getConfig(){
   return {
-    primary: primary.value,
-    accent: accent.value,
-    text: text.value,
-    lang: lang.value,
-    cover: cover.value,
-    tracks: JSON.parse(tracks.value)
-  };
+    size:size.value,
+    primary:primary.value,
+    text:text.value,
+    cover:cover.value,
+    tracks:JSON.parse(tracks.value)
+  }
 }
 
 function updatePreview(){
-  preview.srcdoc = buildPlayer(getConfig());
+  preview.srcdoc=buildPlayer(getConfig());
+  preview.style.width=size.value+'px';
+  preview.style.height='520px';
 }
 
 function generateCode(){
-  output.value = buildPlayer(getConfig());
-  codeModal.style.display = 'flex';
+  navigator.clipboard.writeText(buildPlayer(getConfig()));
+  alert('Код скопирован');
 }
-
-updatePreview();
 </script>
 
 </body>
