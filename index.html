@@ -13,20 +13,12 @@ body{
   background:#0b0f1a;
   color:#fff;
 }
-
 .panel{
   width:320px;
   padding:16px;
   background:#11162a;
-  box-sizing:border-box;
 }
-
-label{
-  display:block;
-  margin-top:10px;
-  font-size:13px;
-}
-
+label{display:block;margin-top:10px;font-size:13px}
 input{
   width:100%;
   margin-top:6px;
@@ -36,7 +28,6 @@ input{
   background:#1b2040;
   color:#fff;
 }
-
 button{
   margin-top:12px;
   width:100%;
@@ -47,14 +38,12 @@ button{
   color:#fff;
   cursor:pointer;
 }
-
 .preview{
   flex:1;
   display:flex;
   align-items:center;
   justify-content:center;
 }
-
 iframe{
   border:none;
   background:transparent;
@@ -64,17 +53,17 @@ iframe{
 
 <body>
 
-<!-- ===== EDITOR ===== -->
+<!-- ===== PANEL ===== -->
 <div class="panel">
   <h3>Audio Player Editor</h3>
 
-  <label>Размер плеера</label>
+  <label>Размер</label>
   <input type="range" id="size" min="220" max="420" value="300">
 
   <label>Основной цвет</label>
   <input type="color" id="primary" value="#8b5cf6">
 
-  <label>Обложка (URL)</label>
+  <label>Обложка</label>
   <input id="cover" placeholder="https://...">
 
   <button onclick="updatePreview()">Обновить предпросмотр</button>
@@ -86,8 +75,8 @@ iframe{
 </div>
 
 <script>
-/* ===== ЗАГРУЗКА ТРЕКОВ ИЗ GITHUB ===== */
-async function loadTracks(){
+/* ===== АВТОЗАГРУЗКА ТРЕКОВ ИЗ GITHUB ===== */
+async function loadTracksFromGitHub(){
   const url = 'https://api.github.com/repos/AnnaPug/audioplayer/contents/audio';
   const res = await fetch(url);
   const data = await res.json();
@@ -100,59 +89,37 @@ async function loadTracks(){
     }));
 }
 
-/* ===== ПЛЕЕР (СТАБИЛЬНАЯ ВЕРСИЯ) ===== */
-function buildPlayer(cfg){
+/* ===== ПЛЕЕР (НЕ ТРОНУТ) ===== */
+function buildPlayer(c){
+
 return `
 <!DOCTYPE html>
 <html>
 <head>
 <style>
 body{margin:0;background:transparent}
-
 #player{
-  width:${cfg.size}px;
+  width:${c.size}px;
   font-family:sans-serif;
   color:white;
 }
-
-#cover{
-  width:100%;
-  border-radius:16px;
-}
-
-#title{
-  text-align:center;
-  margin:8px 0;
-}
-
+img{width:100%;border-radius:16px}
 .controls{
   display:flex;
   justify-content:space-around;
   margin-top:10px;
 }
-
 button{
   width:44px;
   height:44px;
   border-radius:50%;
   border:none;
-  background:${cfg.primary};
+  background:${c.primary};
   color:white;
 }
-
-#playlist{
-  display:none;
-  margin-top:8px;
-}
-
-#playlist div{
-  padding:4px;
-  cursor:pointer;
-}
-
-input[type=range]{
-  width:100%;
-}
+#playlist{display:none;margin-top:8px}
+#playlist div{cursor:pointer;padding:4px}
+input[type=range]{width:100%}
 </style>
 </head>
 
@@ -179,72 +146,60 @@ input[type=range]{
 </div>
 
 <script>
-const tracks = ${JSON.stringify(cfg.tracks)};
+const tracks = ${JSON.stringify(c.tracks)};
 let index = 0;
 
 const audio = document.getElementById('audio');
-const playBtn = document.getElementById('play');
+const play = document.getElementById('play');
 const title = document.getElementById('title');
 const cover = document.getElementById('cover');
 const playlist = document.getElementById('playlist');
-const volume = document.getElementById('volume');
-const progress = document.getElementById('progress');
 
-cover.src = "${cfg.cover || ''}";
+cover.src = "${c.cover}";
 audio.volume = 0.8;
-volume.value = 0.8;
+document.getElementById('volume').value = 0.8;
 
 tracks.forEach((t,i)=>{
-  const d = document.createElement('div');
-  d.textContent = t.title;
-  d.onclick = () => { load(i); play(); };
+  const d=document.createElement('div');
+  d.textContent=t.title;
+  d.onclick=()=>{load(i);playAudio()};
   playlist.appendChild(d);
 });
 
 function load(i){
-  index = i;
-  audio.src = tracks[i].src;
-  title.textContent = tracks[i].title;
+  index=i;
+  audio.src=tracks[i].src;
+  title.textContent=tracks[i].title;
 }
 
-function play(){
+function playAudio(){
   audio.play();
-  playBtn.textContent = '⏸';
+  play.textContent='⏸';
 }
 
-playBtn.onclick = () => {
-  if(audio.paused) play();
-  else{
-    audio.pause();
-    playBtn.textContent = '▶';
-  }
+play.onclick=()=>{
+  if(audio.paused) playAudio();
+  else{ audio.pause(); play.textContent='▶'; }
 };
 
-document.getElementById('next').onclick = () => {
-  index = (index + 1) % tracks.length;
-  load(index);
-  play();
+document.getElementById('next').onclick=()=>{
+  index=(index+1)%tracks.length;
+  load(index); playAudio();
 };
 
-document.getElementById('prev').onclick = () => {
-  index = (index - 1 + tracks.length) % tracks.length;
-  load(index);
-  play();
+document.getElementById('prev').onclick=()=>{
+  index=(index-1+tracks.length)%tracks.length;
+  load(index); playAudio();
 };
 
-document.getElementById('list').onclick = () => {
+document.getElementById('list').onclick=()=>{
   playlist.style.display =
     playlist.style.display === 'block' ? 'none' : 'block';
 };
 
-volume.oninput = e => audio.volume = e.target.value;
-
-audio.ontimeupdate = () => {
-  progress.max = audio.duration || 0;
-  progress.value = audio.currentTime || 0;
+document.getElementById('volume').oninput=e=>{
+  audio.volume=e.target.value;
 };
-
-progress.oninput = e => audio.currentTime = e.target.value;
 
 load(0);
 <\/script>
@@ -256,12 +211,12 @@ load(0);
 
 /* ===== PREVIEW ===== */
 async function updatePreview(){
-  const tracks = await loadTracks();
+  const tracks = await loadTracksFromGitHub();
 
-  const cfg = {
-    size: size.value,
-    primary: primary.value,
-    cover: cover.value,
+  const cfg={
+    size:size.value,
+    primary:primary.value,
+    cover:cover.value,
     tracks
   };
 
