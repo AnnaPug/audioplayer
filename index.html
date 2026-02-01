@@ -1,143 +1,116 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8" />
+<meta charset="UTF-8">
 <title>Genially Audio Player Editor</title>
 
 <style>
 :root {
-  --main: #7b5cff;
-  --accent: #b69cff;
-  --bg: transparent;
-  --text: #ffffff;
+  --main:#7b5cff;
+  --text:#ffffff;
 }
 
-* {
-  box-sizing: border-box;
-  font-family: Inter, system-ui, sans-serif;
-}
+* { box-sizing:border-box; font-family:Inter,system-ui,sans-serif; }
 
 body {
-  margin: 0;
-  background: #0f0c1d;
-  color: white;
+  margin:0;
+  background:#0f0c1d;
+  color:white;
 }
 
 .wrapper {
-  display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: 24px;
-  padding: 24px;
+  display:grid;
+  grid-template-columns:320px 1fr;
+  gap:24px;
+  padding:24px;
 }
 
 .panel {
-  background: #18142f;
-  border-radius: 16px;
-  padding: 16px;
+  background:#18142f;
+  padding:16px;
+  border-radius:16px;
 }
 
-.panel h2 {
-  margin-top: 0;
-  font-size: 16px;
-}
+.panel h2 { margin-top:0; font-size:16px; }
+.panel label { font-size:12px; opacity:.8; }
 
-.panel label {
-  font-size: 12px;
-  opacity: .8;
-}
-
-.panel input, .panel select, .panel textarea {
-  width: 100%;
-  margin: 6px 0 14px;
-  padding: 8px;
-  border-radius: 8px;
-  border: none;
-}
-
-.panel textarea {
-  resize: vertical;
-  height: 80px;
+.panel input, textarea {
+  width:100%;
+  margin:6px 0 14px;
+  padding:8px;
+  border-radius:8px;
+  border:none;
 }
 
 button {
-  width: 100%;
-  padding: 10px;
-  border-radius: 10px;
-  border: none;
-  background: var(--main);
-  color: white;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-button:hover {
-  opacity: .9;
+  width:100%;
+  padding:10px;
+  border-radius:10px;
+  border:none;
+  background:var(--main);
+  color:white;
+  font-weight:600;
+  cursor:pointer;
 }
 
 /* ===== PLAYER ===== */
 
 .player {
-  width: 320px;
-  background: linear-gradient(160deg, var(--main), #9a85ff);
-  border-radius: 20px;
-  padding: 16px;
-  box-shadow: 0 10px 30px rgba(123,92,255,0.4);
+  width:320px;
+  background:linear-gradient(160deg,var(--main),#9a85ff);
+  border-radius:20px;
+  padding:16px;
+  box-shadow:0 10px 30px rgba(123,92,255,.4);
 }
 
 .cover {
-  width: 100%;
-  height: 160px;
-  border-radius: 14px;
-  background-size: cover;
-  background-position: center;
-  margin-bottom: 10px;
+  width:100%;
+  height:160px;
+  border-radius:14px;
+  background-size:cover;
+  background-position:center;
+  margin-bottom:10px;
 }
 
-.title {
-  font-size: 14px;
-  font-weight: 600;
-}
+.title { font-size:14px; font-weight:600; }
 
 .progress {
-  height: 6px;
-  background: rgba(255,255,255,0.3);
-  border-radius: 6px;
-  margin: 10px 0;
-  cursor: pointer;
+  height:6px;
+  background:rgba(255,255,255,.3);
+  border-radius:6px;
+  margin:10px 0;
+  cursor:pointer;
 }
 
 .progress-bar {
-  height: 100%;
-  width: 0%;
-  background: white;
-  border-radius: 6px;
+  height:100%;
+  width:0%;
+  background:white;
+  border-radius:6px;
 }
 
 .controls {
-  display: flex;
-  justify-content: space-between;
+  display:flex;
+  justify-content:space-between;
 }
 
 .controls button {
-  width: auto;
-  background: none;
-  font-size: 18px;
+  width:auto;
+  background:none;
+  font-size:18px;
 }
 
 .playlist {
-  display: none;
-  margin-top: 10px;
+  display:none;
+  margin-top:10px;
 }
 
 .track {
-  font-size: 13px;
-  padding: 4px;
-  cursor: pointer;
+  font-size:13px;
+  padding:4px;
+  cursor:pointer;
 }
-
-.track.active {
-  font-weight: bold;
-}
+.track.active { font-weight:bold; }
 </style>
 </head>
 
@@ -147,27 +120,21 @@ button:hover {
 
   <!-- EDITOR -->
   <div class="panel">
-    <h2>🎛 Редактор плеера</h2>
+    <h2>🎛 Редактор</h2>
 
     <label>Основной цвет</label>
     <input type="color" id="color" value="#7b5cff">
 
-    <label>Язык</label>
-    <select id="lang">
-      <option value="ru">Русский</option>
-      <option value="en">English</option>
-    </select>
+    <label>Обложка</label>
+    <input id="coverInput" value="https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4">
 
-    <label>Ссылка на обложку</label>
-    <input id="coverInput" placeholder="https://..." />
-
-    <label>Ссылки на треки (raw GitHub, по одной в строке)</label>
+    <label>Треки (raw GitHub)</label>
     <textarea id="tracksInput">
 https://raw.githubusercontent.com/AnnaPug/audioplayer/main/audio/track1.mp3
 https://raw.githubusercontent.com/AnnaPug/audioplayer/main/audio/track2.mp3
     </textarea>
 
-    <button onclick="generate()">👀 Обновить предпросмотр</button>
+    <button onclick="render()">👀 Обновить</button>
     <br><br>
     <button onclick="getCode()">📋 Получить код</button>
   </div>
@@ -175,96 +142,103 @@ https://raw.githubusercontent.com/AnnaPug/audioplayer/main/audio/track2.mp3
   <!-- PREVIEW -->
   <div>
     <div id="preview"></div>
-
-    <textarea id="result" style="width:100%;height:220px;margin-top:16px;display:none;"></textarea>
+    <textarea id="result" style="width:100%;height:240px;margin-top:16px;display:none;"></textarea>
   </div>
 
 </div>
 
+<!-- AUDIO ALWAYS EXISTS -->
+<audio id="audio"></audio>
+
 <script>
-function generate() {
+let tracks = [];
+let index = 0;
+
+const audio = document.getElementById("audio");
+
+function render() {
   const color = colorInput.value;
   document.documentElement.style.setProperty("--main", color);
 
-  const cover = coverInput.value || "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4";
-  const tracks = tracksInput.value.trim().split("\n");
+  tracks = tracksInput.value.trim().split("\n");
+  index = 0;
 
   preview.innerHTML = `
-<div class="player">
-  <div class="cover" style="background-image:url('${cover}')"></div>
-  <div class="title" id="title">Track</div>
-  <div class="progress" onclick="seek(event)">
-    <div class="progress-bar" id="bar"></div>
-  </div>
-  <div class="controls">
-    <button onclick="prev()">⏮</button>
-    <button onclick="play()">▶</button>
-    <button onclick="next()">⏭</button>
-    <button onclick="toggle()">☰</button>
-  </div>
-  <div class="playlist" id="list"></div>
-</div>
-<audio id="audio"></audio>
-`;
+  <div class="player">
+    <div class="cover" id="cover"></div>
+    <div class="title" id="title"></div>
 
-  window.tracks = tracks;
-  window.index = 0;
-  audio.src = tracks[0];
-  title.textContent = tracks[0].split("/").pop();
+    <div class="progress" id="progress">
+      <div class="progress-bar" id="bar"></div>
+    </div>
+
+    <div class="controls">
+      <button id="prev">⏮</button>
+      <button id="play">▶</button>
+      <button id="next">⏭</button>
+      <button id="listBtn">☰</button>
+    </div>
+
+    <div class="playlist" id="playlist"></div>
+  </div>
+  `;
+
+  initPlayer();
+}
+
+function initPlayer() {
+  audio.src = tracks[index];
+  title.textContent = getName(tracks[index]);
+  cover.style.backgroundImage = `url('${coverInput.value}')`;
+
+  play.onclick = () => audio.paused ? audio.play() : audio.pause();
+  next.onclick = () => switchTrack(1);
+  prev.onclick = () => switchTrack(-1);
+  listBtn.onclick = () =>
+    playlist.style.display = playlist.style.display === "block" ? "none" : "block";
+
+  progress.onclick = e =>
+    audio.currentTime = (e.offsetX / progress.offsetWidth) * audio.duration;
+
+  audio.ontimeupdate = () =>
+    bar.style.width = (audio.currentTime / audio.duration) * 100 + "%";
+
+  audio.onplay = () => play.textContent = "⏸";
+  audio.onpause = () => play.textContent = "▶";
+  audio.onended = () => switchTrack(1);
+
   buildList();
 }
 
-function play() {
-  audio.paused ? audio.play() : audio.pause();
-}
-
-function next() {
-  index = (index + 1) % tracks.length;
+function switchTrack(step) {
+  index = (index + step + tracks.length) % tracks.length;
   audio.src = tracks[index];
   audio.play();
-  title.textContent = tracks[index].split("/").pop();
+  title.textContent = getName(tracks[index]);
+  buildList();
 }
-
-function prev() {
-  index = (index - 1 + tracks.length) % tracks.length;
-  audio.src = tracks[index];
-  audio.play();
-  title.textContent = tracks[index].split("/").pop();
-}
-
-function toggle() {
-  list.style.display = list.style.display === "block" ? "none" : "block";
-}
-
-function seek(e) {
-  audio.currentTime = (e.offsetX / e.target.offsetWidth) * audio.duration;
-}
-
-audio?.addEventListener("timeupdate", () => {
-  bar.style.width = (audio.currentTime / audio.duration) * 100 + "%";
-});
 
 function buildList() {
-  list.innerHTML = "";
-  tracks.forEach((t, i) => {
-    const div = document.createElement("div");
-    div.className = "track";
-    div.textContent = t.split("/").pop();
-    div.onclick = () => {
-      index = i;
-      audio.src = t;
-      audio.play();
-    };
-    list.appendChild(div);
+  playlist.innerHTML = "";
+  tracks.forEach((t,i)=>{
+    const d = document.createElement("div");
+    d.className = "track" + (i===index?" active":"");
+    d.textContent = getName(t);
+    d.onclick = ()=>{ index=i; audio.src=t; audio.play(); buildList(); };
+    playlist.appendChild(d);
   });
+}
+
+function getName(url) {
+  return decodeURIComponent(url.split("/").pop());
 }
 
 function getCode() {
   result.style.display = "block";
-  result.value = preview.innerHTML;
+  result.value = preview.innerHTML + "\n<audio src=\"" + tracks[0] + "\" controls></audio>";
 }
 
-generate();
+render();
 </script>
 
 </body>
