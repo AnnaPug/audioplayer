@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Audio Player Editor</title>
+<style>
+body {
+  margin: 0;
+  font-family: Inter, sans-serif;
+  background: #0b0f1a;
+  color: #fff;
+  display: flex;
+  height: 100vh;
+}
+
+.panel {
+  width: 340px;
+  padding: 20px;
+  background: #11162a;
+  overflow-y: auto;
+}
+
+.panel h2 {
+  margin-top: 0;
+}
+
+.panel label {
+  display: block;
+  margin-top: 12px;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+.panel input,
+.panel select,
+.panel textarea {
+  width: 100%;
+  margin-top: 6px;
+  padding: 8px;
+  border-radius: 6px;
+  border: none;
+  background: #1b2040;
+  color: #fff;
+}
+
+.panel textarea {
+  height: 100px;
+  resize: vertical;
+}
+
+button {
+  margin-top: 16px;
+  width: 100%;
+  padding: 10px;
+  background: #8b5cf6;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.preview {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle at top, #1a1f3a, #050714);
+}
+
+iframe {
+  width: 320px;
+  height: 480px;
+  border: none;
+  background: transparent;
+}
+
+#codeModal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.8);
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+#codeModal textarea {
+  width: 80%;
+  height: 80%;
+  background: #0b0f1a;
+  color: #0f0;
+  font-family: monospace;
+}
+</style>
+</head>
+
+<body>
+
+<div class="panel">
+  <h2>Audio Player Editor</h2>
+
+  <label>Основной цвет</label>
+  <input type="color" id="primary" value="#8b5cf6">
+
+  <label>Акцент</label>
+  <input type="color" id="accent" value="#f59e0b">
+
+  <label>Цвет текста</label>
+  <input type="color" id="text" value="#ffffff">
+
+  <label>Язык</label>
+  <select id="lang">
+    <option value="ru">Русский</option>
+    <option value="en">English</option>
+  </select>
+
+  <label>Обложка (URL)</label>
+  <input id="cover" placeholder="https://...">
+
+  <label>Аудио (JSON / GitHub RAW)</label>
+  <textarea id="tracks">
+[
+  {
+    "title": "Track 1",
+    "src": "https://raw.githubusercontent.com/USER/REPO/main/audio/track1.mp3"
+  },
+  {
+    "title": "Track 2",
+    "src": "https://raw.githubusercontent.com/USER/REPO/main/audio/track2.mp3"
+  }
+]
+  </textarea>
+
+  <button onclick="updatePreview()">Обновить предпросмотр</button>
+  <button onclick="generateCode()">Получить код</button>
+</div>
+
+<div class="preview">
+  <iframe id="preview"></iframe>
+</div>
+
+<div id="codeModal" onclick="this.style.display='none'">
+  <textarea id="output"></textarea>
+</div>
+
+<script>
+function buildPlayer(config) {
+return `
+<div id="player">
+  <img id="cover">
+  <h3 id="title"></h3>
+
+  <input type="range" id="progress">
+
+  <div class="controls">
+    <button id="prev">⏮</button>
+    <button id="play">▶</button>
+    <button id="next">⏭</button>
+    <button id="shuffle">🔀</button>
+  </div>
+
+  <audio id="audio"></audio>
+</div>
+
+<style>
+:root{
+  --primary:${config.primary};
+  --accent:${config.accent};
+  --text:${config.text};
+}
+
+#player{
+  width:280px;
+  color:var(--text);
+  font-family:sans-serif;
+  background:transparent;
+}
+
+#cover{
+  width:100%;
+  border-radius:16px;
+}
+
+.controls{
+  display:flex;
+  justify-content:space-between;
+  margin-top:10px;
+}
+
+.controls button{
+  width:42px;
+  height:42px;
+  border-radius:50%;
+  border:none;
+  background:var(--primary);
+  color:#fff;
+}
+</style>
+
+<script>
+const tracks=${JSON.stringify(config.tracks)};
+let i=0, shuffle=false;
+const audio=document.getElementById('audio');
+const title=document.getElementById('title');
+const cover=document.getElementById('cover');
+const play=document.getElementById('play');
+
+function load(n){
+ audio.src=tracks[n].src;
+ title.textContent=tracks[n].title;
+ cover.src='${config.cover}';
+}
+play.onclick=()=>{
+ audio.paused?(audio.play(),play.textContent='⏸'):(audio.pause(),play.textContent='▶');
+}
+document.getElementById('next').onclick=()=>{
+ i=shuffle?Math.floor(Math.random()*tracks.length):(i+1)%tracks.length;
+ load(i);audio.play();
+}
+document.getElementById('prev').onclick=()=>{
+ i=(i-1+tracks.length)%tracks.length;
+ load(i);audio.play();
+}
+document.getElementById('shuffle').onclick=()=>shuffle=!shuffle;
+
+load(i);
+<\/script>
+`;
+}
+
+function getConfig(){
+  return {
+    primary: primary.value,
+    accent: accent.value,
+    text: text.value,
+    lang: lang.value,
+    cover: cover.value,
+    tracks: JSON.parse(tracks.value)
+  };
+}
+
+function updatePreview(){
+  preview.srcdoc = buildPlayer(getConfig());
+}
+
+function generateCode(){
+  output.value = buildPlayer(getConfig());
+  codeModal.style.display = 'flex';
+}
+
+updatePreview();
+</script>
+
+</body>
+</html>
